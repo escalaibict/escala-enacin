@@ -3,101 +3,223 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Escala de Presença - Enacin/Ibict</title>
+  <title>Escala de Presença - ENACIN / IBICT</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 0;
     }
-    h1 {
+    header {
+      background-color: #0072c6;
+      color: white;
+      padding: 10px 20px;
       text-align: center;
     }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #999;
-      padding: 6px;
-      text-align: center;
-    }
-    select {
-      width: 100%;
+    .container {
+      padding: 20px;
     }
     .section {
-      margin-top: 40px;
+      margin-bottom: 40px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    label, select, input, textarea, button {
+      display: block;
+      margin-bottom: 10px;
+      width: 100%;
+      max-width: 400px;
+      padding: 8px;
+    }
+    button {
+      background-color: #0072c6;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+    }
+    .admin-section {
+      background-color: #fff0f0;
     }
   </style>
 </head>
 <body>
-  <h1>Escala de Presença - Enacin/Ibict</h1>
+  <header>
+    <h1>Escala de Presença - ENACIN / IBICT</h1>
+  </header>
 
-  <div>
-    <label><strong>Funcionário:</strong></label>
-    <span id="nomeUsuario">[Nome do usuário]</span>
+  <div class="container">
+    <div id="loginSection" class="section">
+      <h2>Login</h2>
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+    </div>
+
+    <div id="escalaSection" class="section" style="display:none;">
+      <h2>Preencher Escala - Mês Atual</h2>
+      <form id="escalaForm">
+        <label for="dia1">1º dia:</label>
+        <select name="dia1">
+          <option value="Presença">Presença</option>
+          <option value="Meio Turno">Meio Turno</option>
+          <option value="Ausência">Ausência</option>
+        </select>
+        <!-- Repita para todos os 31 dias do mês -->
+        <label for="dia2">2º dia:</label>
+        <select name="dia2">
+          <option value="Presença">Presença</option>
+          <option value="Meio Turno">Meio Turno</option>
+          <option value="Ausência">Ausência</option>
+        </select>
+        <!-- ... -->
+        <button type="submit">Salvar Escala</button>
+      </form>
+    </div>
+
+    <div id="viagemSection" class="section" style="display:none;">
+      <h2>Registrar Viagem (Opcional)</h2>
+      <form id="viagemForm">
+        <label for="mesViagem">Mês da Viagem:</label>
+        <input type="month" id="mesViagem" required />
+        <label for="detalhesViagem">Detalhes da Viagem:</label>
+        <textarea id="detalhesViagem" placeholder="Descreva o destino, período e justificativa"></textarea>
+        <button type="submit">Salvar Viagem</button>
+      </form>
+    </div>
+
+    <div id="adminSection" class="section admin-section" style="display:none;">
+      <h2>Visualizar Escalas de Todos</h2>
+      <select id="mesAdmin">
+        <!-- opções de mês -->
+      </select>
+      <button onclick="carregarEscalas()">Buscar</button>
+      <div id="tabelaEscalas"></div>
+    </div>
+
+    <div class="section" id="logoutSection" style="display:none;">
+      <button onclick="logout()">Sair</button>
+    </div>
   </div>
 
-  <div class="section">
-    <h2>Mês Atual - Maio 2025</h2>
-    <table id="tabelaEscala">
-      <thead>
-        <tr>
-          <th>Dia</th>
-          <th>Escala</th>
-        </tr>
-      </thead>
-      <tbody id="corpoTabela">
-        <!-- Dias serão gerados pelo JavaScript -->
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>Viagens</h2>
-    <label for="mesViagem">Selecione o mês:</label>
-    <select id="mesViagem">
-      <option value="2025-01">Janeiro</option>
-      <option value="2025-02">Fevereiro</option>
-      <option value="2025-03">Março</option>
-      <option value="2025-04">Abril</option>
-      <option value="2025-05">Maio</option>
-      <!-- pode adicionar mais -->
-    </select>
-    <br/><br/>
-    <textarea id="viagemTexto" rows="4" cols="50" placeholder="Descreva as viagens aqui..."></textarea>
-  </div>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // Gerar tabela com os dias do mês atual
-    const tbody = document.getElementById("corpoTabela");
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = hoje.getMonth(); // zero-based
-    const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+    // Configuração do Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCf10Hk-a19hxnUL3TMhBZmHZ34eU2KSqk",
+      authDomain: "escalaibict.firebaseapp.com",
+      projectId: "escalaibict",
+      storageBucket: "escalaibict.firebasestorage.app",
+      messagingSenderId: "424701486285",
+      appId: "1:424701486285:web:b532902a10f76374f5b584"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const ADM_EMAIL = "escaladepresencaibict@gmail.com";
 
-    const opcoes = ["", "Presença", "Meio Turno", "Ausência"];
-
-    for (let dia = 1; dia <= ultimoDia; dia++) {
-      const tr = document.createElement("tr");
-
-      const tdDia = document.createElement("td");
-      tdDia.textContent = dia;
-      tr.appendChild(tdDia);
-
-      const tdSelect = document.createElement("td");
-      const select = document.createElement("select");
-      opcoes.forEach(op => {
-        const option = document.createElement("option");
-        option.value = op;
-        option.text = op;
-        select.appendChild(option);
-      });
-      tdSelect.appendChild(select);
-      tr.appendChild(tdSelect);
-
-      tbody.appendChild(tr);
+    function login() {
+      const email = document.getElementById("email").value;
+      const senha = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, senha)
+        .then(() => {
+          document.getElementById("loginSection").style.display = "none";
+          document.getElementById("escalaSection").style.display = "block";
+          document.getElementById("viagemSection").style.display = "block";
+          document.getElementById("logoutSection").style.display = "block";
+          if (email === ADM_EMAIL) {
+            document.getElementById("adminSection").style.display = "block";
+          }
+        })
+        .catch(error => {
+          alert("Erro ao fazer login: " + error.message);
+        });
     }
+
+    function logout() {
+      auth.signOut().then(() => location.reload());
+    }
+
+    document.getElementById("escalaForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const dados = {};
+      for (let i = 1; i <= 31; i++) {
+        const dia = document.querySelector(`[name=dia${i}]`);
+        if (dia) dados[`dia${i}`] = dia.value;
+      }
+      const user = auth.currentUser;
+      const mesAno = new Date().toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" }).replace("/", "-");
+      db.collection("escalas").doc(user.uid + "_" + mesAno).set({
+        uid: user.uid,
+        email: user.email,
+        mes: mesAno,
+        dados: dados
+      }).then(() => alert("Escala salva com sucesso!"));
+    });
+
+    document.getElementById("viagemForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const user = auth.currentUser;
+      const mes = document.getElementById("mesViagem").value;
+      const detalhes = document.getElementById("detalhesViagem").value;
+      if (!mes || !detalhes) return alert("Preencha todos os campos.");
+      db.collection("viagens").doc(user.uid + "_" + mes).set({
+        uid: user.uid,
+        email: user.email,
+        mes: mes,
+        detalhes: detalhes
+      }).then(() => alert("Viagem registrada com sucesso!"));
+    });
+
+    function carregarEscalas() {
+      const mesSelecionado = document.getElementById("mesAdmin").value;
+      db.collection("escalas").where("mes", "==", mesSelecionado).get()
+        .then(snapshot => {
+          let html = "<table><tr><th>Email</th>";
+          for (let i = 1; i <= 31; i++) html += `<th>${i}</th>`;
+          html += "</tr>";
+          snapshot.forEach(doc => {
+            const esc = doc.data();
+            html += `<tr><td>${esc.email}</td>`;
+            for (let i = 1; i <= 31; i++) html += `<td>${esc.dados[`dia${i}`] || "-"}</td>`;
+            html += "</tr>";
+          });
+          html += "</table>";
+          document.getElementById("tabelaEscalas").innerHTML = html;
+        });
+    }
+
+    window.onload = () => {
+      const mesSelect = document.getElementById("mesAdmin");
+      const hoje = new Date();
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const val = d.toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" }).replace("/", "-");
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.innerText = val;
+        mesSelect.appendChild(opt);
+      }
+    };
   </script>
 </body>
 </html>
