@@ -7,180 +7,96 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f1f1f1;
-      padding: 20px;
-      margin: 0;
+      margin: 20px;
     }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h1, h2 {
+    h1 {
       text-align: center;
-    }
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 1em;
-    }
-    .btn-group {
-      display: flex;
-      gap: 10px;
-    }
-    .btn-group button {
-      flex: 1;
     }
     table {
+      border-collapse: collapse;
       width: 100%;
       margin-top: 20px;
-      border-collapse: collapse;
-    }
-    table, th, td {
-      border: 1px solid #ddd;
     }
     th, td {
-      padding: 8px;
+      border: 1px solid #999;
+      padding: 6px;
       text-align: center;
+    }
+    select {
+      width: 100%;
+    }
+    .section {
+      margin-top: 40px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Escala de Presença - Enacin/Ibict</h1>
-    <div id="login-screen">
-      <input type="email" id="email" placeholder="E-mail">
-      <input type="password" id="password" placeholder="Senha">
-      <div class="btn-group">
-        <button onclick="login()">Entrar</button>
-        <button onclick="register()">Cadastrar</button>
-      </div>
-    </div>
+  <h1>Escala de Presença - Enacin/Ibict</h1>
 
-    <div id="main-screen" style="display: none;">
-      <h2>Preencher Escala</h2>
-      <input type="date" id="data">
-      <select id="opcao">
-        <option value="Dia inteiro">Dia inteiro</option>
-        <option value="Meio turno">Meio turno</option>
-        <option value="Ausência">Ausência</option>
-      </select>
-      <button onclick="enviarEscala()">Enviar</button>
-
-      <h2>Escalas Registradas</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Opção</th>
-            <th>Email</th>
-          </tr>
-        </thead>
-        <tbody id="escala-table-body"></tbody>
-      </table>
-
-      <button onclick="logout()" style="margin-top:20px;">Sair</button>
-    </div>
+  <div>
+    <label><strong>Funcionário:</strong></label>
+    <span id="nomeUsuario">[Nome do usuário]</span>
   </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <div class="section">
+    <h2>Mês Atual - Maio 2025</h2>
+    <table id="tabelaEscala">
+      <thead>
+        <tr>
+          <th>Dia</th>
+          <th>Escala</th>
+        </tr>
+      </thead>
+      <tbody id="corpoTabela">
+        <!-- Dias serão gerados pelo JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Viagens</h2>
+    <label for="mesViagem">Selecione o mês:</label>
+    <select id="mesViagem">
+      <option value="2025-01">Janeiro</option>
+      <option value="2025-02">Fevereiro</option>
+      <option value="2025-03">Março</option>
+      <option value="2025-04">Abril</option>
+      <option value="2025-05">Maio</option>
+      <!-- pode adicionar mais -->
+    </select>
+    <br/><br/>
+    <textarea id="viagemTexto" rows="4" cols="50" placeholder="Descreva as viagens aqui..."></textarea>
+  </div>
 
   <script>
-    // Configuração do Firebase (já com os dados que você me mandou)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCf10Hk-a19hxnUL3TMhBZmHZ34eU2KSqk",
-      authDomain: "escalaibict.firebaseapp.com",
-      projectId: "escalaibict",
-      storageBucket: "escalaibict.firebasestorage.app",
-      messagingSenderId: "424701486285",
-      appId: "1:424701486285:web:b532902a10f76374f5b584"
-    };
+    // Gerar tabela com os dias do mês atual
+    const tbody = document.getElementById("corpoTabela");
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = hoje.getMonth(); // zero-based
+    const ultimoDia = new Date(ano, mes + 1, 0).getDate();
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const opcoes = ["", "Presença", "Meio Turno", "Ausência"];
 
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
-    const loginScreen = document.getElementById("login-screen");
-    const mainScreen = document.getElementById("main-screen");
+    for (let dia = 1; dia <= ultimoDia; dia++) {
+      const tr = document.createElement("tr");
 
-    const adminEmail = "escaladepresencaibict@gmail.com";
+      const tdDia = document.createElement("td");
+      tdDia.textContent = dia;
+      tr.appendChild(tdDia);
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        loginScreen.style.display = "none";
-        mainScreen.style.display = "block";
-        carregarEscalas(user);
-      } else {
-        loginScreen.style.display = "block";
-        mainScreen.style.display = "none";
-      }
-    });
-
-    function login() {
-      const email = emailInput.value;
-      const password = passwordInput.value;
-      auth.signInWithEmailAndPassword(email, password)
-        .catch(error => alert("Erro ao fazer login: " + error.message));
-    }
-
-    function register() {
-      const email = emailInput.value;
-      const password = passwordInput.value;
-      auth.createUserWithEmailAndPassword(email, password)
-        .catch(error => alert("Erro ao cadastrar: " + error.message));
-    }
-
-    function logout() {
-      auth.signOut();
-    }
-
-    function enviarEscala() {
-      const data = document.getElementById("data").value;
-      const opcao = document.getElementById("opcao").value;
-      const user = auth.currentUser;
-
-      if (!data) {
-        alert("Selecione uma data.");
-        return;
-      }
-
-      db.collection("escalas").add({
-        data,
-        opcao,
-        email: user.email,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        alert("Escala enviada com sucesso!");
-        carregarEscalas(user);
+      const tdSelect = document.createElement("td");
+      const select = document.createElement("select");
+      opcoes.forEach(op => {
+        const option = document.createElement("option");
+        option.value = op;
+        option.text = op;
+        select.appendChild(option);
       });
-    }
+      tdSelect.appendChild(select);
+      tr.appendChild(tdSelect);
 
-    function carregarEscalas(user) {
-      const tbody = document.getElementById("escala-table-body");
-      tbody.innerHTML = "";
-
-      let query = db.collection("escalas").orderBy("timestamp", "desc");
-      if (user.email !== adminEmail) {
-        query = query.where("email", "==", user.email);
-      }
-
-      query.get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const { data, opcao, email } = doc.data();
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${data}</td><td>${opcao}</td><td>${email}</td>`;
-          tbody.appendChild(tr);
-        });
-      });
+      tbody.appendChild(tr);
     }
   </script>
 </body>
