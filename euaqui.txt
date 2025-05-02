@@ -1,185 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Escala de Presença - Enacin</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escala de Presença</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f3f3f3; }
-    .hidden { display: none; }
-    .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; }
-    label { display: block; margin-top: 10px; font-weight: bold; }
-    select, input[type="text"], input[type="email"], input[type="tel"] {
-      width: 100%; padding: 8px; margin-top: 5px;
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
     }
-    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #eee; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Escala de Presença - ENACIN</h2>
+  <h1>Escala de Presença - ENACIN/IBICT</h1>
 
-    <!-- Tela de login/cadastro -->
-    <div id="authSection">
-      <label>Email:</label>
-      <input type="email" id="email">
-      <label>Senha:</label>
-      <input type="password" id="password">
-      <button onclick="login()">Entrar</button>
-      <button onclick="signup()">Cadastrar</button>
-    </div>
-
-    <!-- Formulário da Escala -->
-    <div id="formSection" class="hidden">
-      <h3>Preencher Escala</h3>
-      <label>Nome:</label>
-      <input type="text" id="nome">
-      <label>Telefone:</label>
-      <input type="tel" id="telefone">
-      
-      <div id="escalaCampos"></div>
-      <button onclick="enviarEscala()">Enviar Escala</button>
-      <button onclick="logout()">Sair</button>
-    </div>
-
-    <!-- Área ADM -->
-    <div id="adminSection" class="hidden">
-      <h3>Escalas Preenchidas</h3>
-      <table id="adminTable">
-        <thead>
-          <tr id="tableHeader"></tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+  <div id="login">
+    <input type="email" id="email" placeholder="E-mail" />
+    <input type="password" id="password" placeholder="Senha" />
+    <button onclick="login()">Entrar</button>
+    <button onclick="signup()">Cadastrar</button>
   </div>
 
+  <div id="user-area" style="display:none;">
+    <p id="user-info"></p>
+    <button onclick="logout()">Sair</button>
+    <!-- Aqui vamos colocar os formulários e tabelas depois -->
+  </div>
+
+  <!-- Firebase Configuração -->
   <script>
-    // Firebase config (substitua depois)
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_AUTH_DOMAIN",
-      projectId: "SEU_PROJECT_ID",
-      storageBucket: "SEU_BUCKET",
-      messagingSenderId: "SEU_SENDER_ID",
-      appId: "SEU_APP_ID"
+      apiKey: "AIzaSyCfJArKmu62Wox2gABqGDiYsm1kRkU2KSqk",
+      authDomain: "escalaibict.firebaseapp.com",
+      projectId: "escalaibict",
+      storageBucket: "escalaibict.appspot.com",
+      messagingSenderId: "142708116328",
+      appId: "1:142708116328:web:b5d3929f817f6974f5b584"
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const datasEscala = [
-      "20/05", "21/05", "22/05", "23/05", "24/05",
-      "27/05", "28/05", "29/05", "30/05", "31/05"
-    ];
-    const opcoes = ["Dia inteiro", "Meio turno", "Ausente"];
-
-    const escalaCampos = document.getElementById('escalaCampos');
-    datasEscala.forEach(data => {
-      const label = document.createElement('label');
-      label.innerText = `Dia ${data}:`;
-      const select = document.createElement('select');
-      select.id = `data-${data}`;
-      opcoes.forEach(op => {
-        const option = document.createElement('option');
-        option.value = op;
-        option.innerText = op;
-        select.appendChild(option);
-      });
-      escalaCampos.appendChild(label);
-      escalaCampos.appendChild(select);
-    });
-
-    function login() {
-      const email = document.getElementById('email').value;
-      const senha = document.getElementById('password').value;
-      auth.signInWithEmailAndPassword(email, senha)
-        .then(() => location.reload())
-        .catch(e => alert(e.message));
-    }
-
-    function signup() {
-      const email = document.getElementById('email').value;
-      const senha = document.getElementById('password').value;
-      auth.createUserWithEmailAndPassword(email, senha)
-        .then(() => location.reload())
-        .catch(e => alert(e.message));
-    }
-
-    function logout() {
-      auth.signOut().then(() => location.reload());
-    }
-
+    // Autenticação simples
     auth.onAuthStateChanged(user => {
       if (user) {
-        const email = user.email;
-        document.getElementById('authSection').classList.add('hidden');
-
-        if (email === 'admin@admin.com') {
-          document.getElementById('adminSection').classList.remove('hidden');
-          carregarTabelaADM();
-        } else {
-          document.getElementById('formSection').classList.remove('hidden');
-        }
+        document.getElementById("login").style.display = "none";
+        document.getElementById("user-area").style.display = "block";
+        document.getElementById("user-info").textContent = "Logado como: " + user.email;
+      } else {
+        document.getElementById("login").style.display = "block";
+        document.getElementById("user-area").style.display = "none";
       }
     });
 
-    function enviarEscala() {
-      const user = auth.currentUser;
-      const nome = document.getElementById('nome').value;
-      const telefone = document.getElementById('telefone').value;
-
-      const dados = {
-        nome,
-        email: user.email,
-        telefone,
-        dataEnvio: new Date().toISOString()
-      };
-
-      datasEscala.forEach(data => {
-        const valor = document.getElementById(`data-${data}`).value;
-        dados[data] = valor;
-      });
-
-      db.collection("escalas").add(dados).then(() => {
-        alert("Escala enviada com sucesso!");
-      }).catch(e => {
-        alert("Erro ao enviar: " + e.message);
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password).catch(error => {
+        alert("Erro ao entrar: " + error.message);
       });
     }
 
-    function carregarTabelaADM() {
-      const header = document.getElementById('tableHeader');
-      const body = document.getElementById('tableBody');
-
-      header.innerHTML = `<th>Nome</th><th>Email</th><th>Telefone</th>`;
-      datasEscala.forEach(data => {
-        const th = document.createElement('th');
-        th.innerText = data;
-        header.appendChild(th);
+    function signup() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password).catch(error => {
+        alert("Erro ao cadastrar: " + error.message);
       });
+    }
 
-      db.collection("escalas").get().then(snapshot => {
-        body.innerHTML = "";
-        snapshot.forEach(doc => {
-          const dados = doc.data();
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${dados.nome}</td>
-            <td>${dados.email}</td>
-            <td>${dados.telefone}</td>
-          `;
-          datasEscala.forEach(data => {
-            tr.innerHTML += `<td>${dados[data] || '-'}</td>`;
-          });
-          body.appendChild(tr);
-        });
-      });
+    function logout() {
+      auth.signOut();
     }
   </script>
 </body>
