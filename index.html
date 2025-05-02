@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escala de Presença - Enacin/Ibict</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f1f1;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 1em;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-group button {
+      flex: 1;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Escala de Presença - Enacin/Ibict</h1>
+    <div id="login-screen">
+      <input type="email" id="email" placeholder="E-mail">
+      <input type="password" id="password" placeholder="Senha">
+      <div class="btn-group">
+        <button onclick="login()">Entrar</button>
+        <button onclick="register()">Cadastrar</button>
+      </div>
+    </div>
+
+    <div id="main-screen" style="display: none;">
+      <h2>Preencher Escala</h2>
+      <input type="date" id="data">
+      <select id="opcao">
+        <option value="Dia inteiro">Dia inteiro</option>
+        <option value="Meio turno">Meio turno</option>
+        <option value="Ausência">Ausência</option>
+      </select>
+      <button onclick="enviarEscala()">Enviar</button>
+
+      <h2>Escalas Registradas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Opção</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody id="escala-table-body"></tbody>
+      </table>
+
+      <button onclick="logout()" style="margin-top:20px;">Sair</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+
+  <script>
+    // Configuração do Firebase (já com os dados que você me mandou)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCf10Hk-a19hxnUL3TMhBZmHZ34eU2KSqk",
+      authDomain: "escalaibict.firebaseapp.com",
+      projectId: "escalaibict",
+      storageBucket: "escalaibict.firebasestorage.app",
+      messagingSenderId: "424701486285",
+      appId: "1:424701486285:web:b532902a10f76374f5b584"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const loginScreen = document.getElementById("login-screen");
+    const mainScreen = document.getElementById("main-screen");
+
+    const adminEmail = "escaladepresencaibict@gmail.com";
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginScreen.style.display = "none";
+        mainScreen.style.display = "block";
+        carregarEscalas(user);
+      } else {
+        loginScreen.style.display = "block";
+        mainScreen.style.display = "none";
+      }
+    });
+
+    function login() {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(error => alert("Erro ao fazer login: " + error.message));
+    }
+
+    function register() {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .catch(error => alert("Erro ao cadastrar: " + error.message));
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    function enviarEscala() {
+      const data = document.getElementById("data").value;
+      const opcao = document.getElementById("opcao").value;
+      const user = auth.currentUser;
+
+      if (!data) {
+        alert("Selecione uma data.");
+        return;
+      }
+
+      db.collection("escalas").add({
+        data,
+        opcao,
+        email: user.email,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        alert("Escala enviada com sucesso!");
+        carregarEscalas(user);
+      });
+    }
+
+    function carregarEscalas(user) {
+      const tbody = document.getElementById("escala-table-body");
+      tbody.innerHTML = "";
+
+      let query = db.collection("escalas").orderBy("timestamp", "desc");
+      if (user.email !== adminEmail) {
+        query = query.where("email", "==", user.email);
+      }
+
+      query.get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const { data, opcao, email } = doc.data();
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${data}</td><td>${opcao}</td><td>${email}</td>`;
+          tbody.appendChild(tr);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
