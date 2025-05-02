@@ -1,131 +1,84 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Escala de Presença</title>
+  <title>Escala de Presença - IBICT</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
       background: #f4f4f4;
+      color: #333;
+    }
+    header, main {
       padding: 20px;
-    }
-    .container {
-      max-width: 600px;
+      max-width: 800px;
       margin: auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
     }
-    h2 {
-      text-align: center;
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-    }
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-    }
-    .hidden {
-      display: none;
-    }
-    table {
-      width: 100%;
-      margin-top: 20px;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-    }
-    th {
-      background: #333;
+    .hidden { display: none; }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      background: #007bff;
       color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    input, select {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .record {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 5px 0;
+      background: #fff;
     }
   </style>
 </head>
 <body>
-  <div class="container" id="login-container">
-    <h2>Login</h2>
-    <label>Email:</label>
-    <input type="email" id="email">
-    <label>Senha:</label>
-    <input type="password" id="password">
-    <button onclick="login()">Entrar</button>
-    <button onclick="showRegister()">Criar Conta</button>
-    <p id="login-error" style="color:red;"></p>
-  </div>
-
-  <div class="container hidden" id="register-container">
-    <h2>Cadastro</h2>
-    <label>Email:</label>
-    <input type="email" id="reg-email">
-    <label>Senha:</label>
-    <input type="password" id="reg-password">
-    <button onclick="register()">Cadastrar</button>
-    <button onclick="showLogin()">Voltar</button>
-    <p id="register-error" style="color:red;"></p>
-  </div>
-
-  <div class="container hidden" id="form-container">
-    <h2>Preencher Escala</h2>
-    <label>Nome Completo:</label>
-    <input type="text" id="nome">
-    <label>Turno do Dia 1:</label>
-    <select id="dia1">
-      <option value="Dia todo">Dia todo</option>
-      <option value="Meio turno">Meio turno</option>
-      <option value="Ausente">Ausente</option>
-    </select>
-    <label>Turno do Dia 2:</label>
-    <select id="dia2">
-      <option value="Dia todo">Dia todo</option>
-      <option value="Meio turno">Meio turno</option>
-      <option value="Ausente">Ausente</option>
-    </select>
-    <label>Turno do Dia 3:</label>
-    <select id="dia3">
-      <option value="Dia todo">Dia todo</option>
-      <option value="Meio turno">Meio turno</option>
-      <option value="Ausente">Ausente</option>
-    </select>
-    <label>Turno do Dia 4:</label>
-    <select id="dia4">
-      <option value="Dia todo">Dia todo</option>
-      <option value="Meio turno">Meio turno</option>
-      <option value="Ausente">Ausente</option>
-    </select>
-    <button onclick="enviarEscala()">Enviar</button>
+  <header>
+    <h1>Escala de Presença - Enacin / IBICT</h1>
+    <div id="user-info"></div>
     <button onclick="logout()">Sair</button>
-  </div>
+  </header>
 
-  <div class="container hidden" id="admin-container">
-    <h2>Escalas Enviadas</h2>
-    <table id="escala-tabela">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Email</th>
-          <th>Dia 1</th>
-          <th>Dia 2</th>
-          <th>Dia 3</th>
-          <th>Dia 4</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <button onclick="logout()">Sair</button>
-  </div>
+  <main>
+    <!-- Tela de login/cadastro -->
+    <div id="login-screen">
+      <h2>Login ou Cadastro</h2>
+      <input type="email" id="email" placeholder="Seu e-mail" />
+      <input type="password" id="password" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+      <button onclick="signup()">Cadastrar</button>
+    </div>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <!-- Formulário de escala -->
+    <div id="form-screen" class="hidden">
+      <h2>Preencher Escala</h2>
+      <input type="text" id="nome" placeholder="Nome completo" />
+      <select id="dia1"><option value="">Dia 1</option><option>Presente</option><option>Meio turno</option><option>Ausente</option></select>
+      <select id="dia2"><option value="">Dia 2</option><option>Presente</option><option>Meio turno</option><option>Ausente</option></select>
+      <select id="dia3"><option value="">Dia 3</option><option>Presente</option><option>Meio turno</option><option>Ausente</option></select>
+      <textarea id="observacoes" placeholder="Observações (opcional)"></textarea>
+      <button onclick="enviarEscala()">Enviar Escala</button>
+    </div>
 
+    <!-- Área do ADM -->
+    <div id="admin-screen" class="hidden">
+      <h2>Escalas Enviadas</h2>
+      <div id="registros"></div>
+    </div>
+  </main>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCf10Hk-a19hxnUL3TMhBZmHZ34eU2KSqk",
@@ -135,91 +88,89 @@
       messagingSenderId: "424701486285",
       appId: "1:424701486285:web:b532902a10f76374f5b584"
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const adminEmail = "escaladepresencaibict@gmail.com";
+    const loginScreen = document.getElementById('login-screen');
+    const formScreen = document.getElementById('form-screen');
+    const adminScreen = document.getElementById('admin-screen');
+    const userInfo = document.getElementById('user-info');
 
-    function showLogin() {
-      document.getElementById("register-container").classList.add("hidden");
-      document.getElementById("login-container").classList.remove("hidden");
-    }
+    const admEmail = "escaladepresencaibict@gmail.com";
 
-    function showRegister() {
-      document.getElementById("login-container").classList.add("hidden");
-      document.getElementById("register-container").classList.remove("hidden");
-    }
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginScreen.classList.add("hidden");
+        userInfo.innerText = "Logado como: " + user.email;
+        if (user.email === admEmail) {
+          adminScreen.classList.remove("hidden");
+          carregarRegistros();
+        } else {
+          formScreen.classList.remove("hidden");
+        }
+      } else {
+        loginScreen.classList.remove("hidden");
+        formScreen.classList.add("hidden");
+        adminScreen.classList.add("hidden");
+        userInfo.innerText = "";
+      }
+    });
 
     function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          if (email === adminEmail) {
-            showAdmin();
-          } else {
-            document.getElementById("login-container").classList.add("hidden");
-            document.getElementById("form-container").classList.remove("hidden");
-          }
-        })
-        .catch((error) => {
-          document.getElementById("login-error").innerText = error.message;
-        });
+      auth.signInWithEmailAndPassword(email, password).catch(alert);
     }
 
-    function register() {
-      const email = document.getElementById("reg-email").value;
-      const password = document.getElementById("reg-password").value;
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => showLogin())
-        .catch((error) => {
-          document.getElementById("register-error").innerText = error.message;
-        });
+    function signup() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password).catch(alert);
     }
 
     function logout() {
-      auth.signOut().then(() => {
-        location.reload();
-      });
+      auth.signOut();
     }
 
     function enviarEscala() {
       const user = auth.currentUser;
       if (!user) return;
+
       const escala = {
-        nome: document.getElementById("nome").value,
+        uid: user.uid,
         email: user.email,
+        nome: document.getElementById("nome").value,
         dia1: document.getElementById("dia1").value,
         dia2: document.getElementById("dia2").value,
         dia3: document.getElementById("dia3").value,
-        dia4: document.getElementById("dia4").value,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        observacoes: document.getElementById("observacoes").value,
+        timestamp: new Date()
       };
-      db.collection("escalas").add(escala).then(() => {
-        alert("Escala enviada!");
-        logout();
-      });
+
+      db.collection("escalas").add(escala)
+        .then(() => {
+          alert("Escala enviada!");
+          document.getElementById("form-screen").reset();
+        })
+        .catch(err => alert("Erro: " + err));
     }
 
-    function showAdmin() {
-      document.getElementById("login-container").classList.add("hidden");
-      document.getElementById("admin-container").classList.remove("hidden");
-      const tbody = document.querySelector("#escala-tabela tbody");
-      tbody.innerHTML = "";
-      db.collection("escalas").orderBy("timestamp", "desc").get().then(snapshot => {
+    function carregarRegistros() {
+      db.collection("escalas").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+        const container = document.getElementById("registros");
+        container.innerHTML = "";
         snapshot.forEach(doc => {
           const data = doc.data();
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${data.nome}</td>
-            <td>${data.email}</td>
-            <td>${data.dia1}</td>
-            <td>${data.dia2}</td>
-            <td>${data.dia3}</td>
-            <td>${data.dia4}</td>
+          container.innerHTML += `
+            <div class="record">
+              <strong>${data.nome}</strong> (${data.email})<br>
+              Dia 1: ${data.dia1} | Dia 2: ${data.dia2} | Dia 3: ${data.dia3}<br>
+              Obs: ${data.observacoes || "Nenhuma"}<br>
+              <small>${new Date(data.timestamp.toDate()).toLocaleString()}</small>
+            </div>
           `;
-          tbody.appendChild(tr);
         });
       });
     }
