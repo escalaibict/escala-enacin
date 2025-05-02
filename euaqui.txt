@@ -1,81 +1,224 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Escala de Presença</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escala de Presença - IBICT</title>
   <style>
     body {
-      font-family: sans-serif;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    .hidden {
+      display: none;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+      margin-top: 10px;
+      padding: 10px;
+      width: 100%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    table, th, td {
+      border: 1px solid #aaa;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
     }
   </style>
 </head>
 <body>
-  <h1>Escala de Presença - ENACIN/IBICT</h1>
 
-  <div id="login">
-    <input type="email" id="email" placeholder="E-mail" />
+  <div class="card" id="loginDiv">
+    <h2>Login / Cadastro</h2>
+    <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Senha" />
     <button onclick="login()">Entrar</button>
     <button onclick="signup()">Cadastrar</button>
+    <p id="loginMessage"></p>
   </div>
 
-  <div id="user-area" style="display:none;">
-    <p id="user-info"></p>
-    <button onclick="logout()">Sair</button>
-    <!-- Aqui vamos colocar os formulários e tabelas depois -->
+  <div class="card hidden" id="formDiv">
+    <h2>Formulário de Escala de Presença</h2>
+    <input type="text" id="nome" placeholder="Nome Completo" />
+    <input type="text" id="lotacao" placeholder="Lotação" />
+    <input type="text" id="subunidade" placeholder="Subunidade (Se houver)" />
+    <input type="text" id="gestor" placeholder="Nome do(a) Gestor(a) imediato(a)" />
+    <input type="month" id="mesReferencia" />
+    <select id="tipoEscala">
+      <option value="">Selecione a opção</option>
+      <option value="Comparecimento Integral">Comparecimento Integral</option>
+      <option value="Comparecimento Parcial (meio turno)">Comparecimento Parcial (meio turno)</option>
+      <option value="Ausência Total">Ausência Total</option>
+    </select>
+    <textarea id="observacoes" placeholder="Observações" rows="4" style="margin-top:10px;"></textarea>
+    <button onclick="enviarEscala()">Enviar Escala</button>
   </div>
 
-  <!-- Firebase Configuração -->
-  <script>
+  <div class="card hidden" id="tabelaDiv">
+    <h2>Escalas Registradas</h2>
+    <div id="tabelaContainer"></div>
+  </div>
+
+  <button class="hidden" id="logoutBtn" onclick="logout()">Sair</button>
+
+  <!-- Firebase -->
+  <script type="module">
+    // CONFIGURAÇÃO FIREBASE (Substitua pelos seus dados do Firebase)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      signOut,
+    } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      where,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+
     const firebaseConfig = {
-      apiKey: "AIzaSyCfJArKmu62Wox2gABqGDiYsm1kRkU2KSqk",
-      authDomain: "escalaibict.firebaseapp.com",
-      projectId: "escalaibict",
-      storageBucket: "escalaibict.appspot.com",
-      messagingSenderId: "142708116328",
-      appId: "1:142708116328:web:b5d3929f817f6974f5b584"
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_AUTH_DOMAIN",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_STORAGE_BUCKET",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    // Autenticação simples
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        document.getElementById("login").style.display = "none";
-        document.getElementById("user-area").style.display = "block";
-        document.getElementById("user-info").textContent = "Logado como: " + user.email;
-      } else {
-        document.getElementById("login").style.display = "block";
-        document.getElementById("user-area").style.display = "none";
-      }
-    });
+    const loginDiv = document.getElementById("loginDiv");
+    const formDiv = document.getElementById("formDiv");
+    const tabelaDiv = document.getElementById("tabelaDiv");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const ADMIN_EMAIL = "escaladepresencaibict@gmail.com";
 
     function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password).catch(error => {
-        alert("Erro ao entrar: " + error.message);
-      });
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => {})
+        .catch((error) => {
+          document.getElementById("loginMessage").innerText = "Erro ao fazer login: " + error.message;
+        });
     }
 
     function signup() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      auth.createUserWithEmailAndPassword(email, password).catch(error => {
-        alert("Erro ao cadastrar: " + error.message);
-      });
+      createUserWithEmailAndPassword(auth, email, password)
+        .then(() => {})
+        .catch((error) => {
+          document.getElementById("loginMessage").innerText = "Erro ao cadastrar: " + error.message;
+        });
     }
 
     function logout() {
-      auth.signOut();
+      signOut(auth);
     }
+
+    async function enviarEscala() {
+      const nome = document.getElementById("nome").value;
+      const lotacao = document.getElementById("lotacao").value;
+      const subunidade = document.getElementById("subunidade").value;
+      const gestor = document.getElementById("gestor").value;
+      const mes = document.getElementById("mesReferencia").value;
+      const tipo = document.getElementById("tipoEscala").value;
+      const obs = document.getElementById("observacoes").value;
+
+      const user = auth.currentUser;
+
+      if (!nome || !lotacao || !gestor || !mes || !tipo) {
+        alert("Preencha todos os campos obrigatórios.");
+        return;
+      }
+
+      await addDoc(collection(db, "escalas"), {
+        uid: user.uid,
+        email: user.email,
+        nome,
+        lotacao,
+        subunidade,
+        gestor,
+        mes,
+        tipo,
+        observacoes: obs,
+        timestamp: serverTimestamp()
+      });
+
+      alert("Escala enviada com sucesso!");
+      document.getElementById("formDiv").reset();
+    }
+
+    async function carregarEscalas(usuario) {
+      let q = collection(db, "escalas");
+      if (usuario.email !== ADMIN_EMAIL) {
+        q = query(q, where("uid", "==", usuario.uid));
+      }
+      const snap = await getDocs(q);
+      let html = "<table><tr><th>Nome</th><th>Lotação</th><th>Subunidade</th><th>Gestor</th><th>Mês</th><th>Tipo</th><th>Observações</th></tr>";
+      snap.forEach(doc => {
+        const data = doc.data();
+        html += `<tr>
+          <td>${data.nome}</td>
+          <td>${data.lotacao}</td>
+          <td>${data.subunidade}</td>
+          <td>${data.gestor}</td>
+          <td>${data.mes}</td>
+          <td>${data.tipo}</td>
+          <td>${data.observacoes || ''}</td>
+        </tr>`;
+      });
+      html += "</table>";
+      document.getElementById("tabelaContainer").innerHTML = html;
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginDiv.classList.add("hidden");
+        formDiv.classList.remove("hidden");
+        tabelaDiv.classList.remove("hidden");
+        logoutBtn.classList.remove("hidden");
+        carregarEscalas(user);
+      } else {
+        loginDiv.classList.remove("hidden");
+        formDiv.classList.add("hidden");
+        tabelaDiv.classList.add("hidden");
+        logoutBtn.classList.add("hidden");
+      }
+    });
   </script>
 </body>
 </html>
