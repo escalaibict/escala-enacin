@@ -138,6 +138,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <script>
+    // Firebase config (verifique no Firebase console se precisa atualizar)
     const firebaseConfig = {
       apiKey: "AIzaSyCf10Hk-a19hxnUL3TMhBZmHZ34eU2KSqk",
       authDomain: "escalaibict.firebaseapp.com",
@@ -147,13 +148,13 @@
       appId: "1:424701486285:web:b532902a10f76374f5b584"
     };
 
+    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
     let currentUser = null;
     let isAdmin = false;
-
     const statusOptions = ["Presença", "Meio Turno", "Ausência"];
 
     function toggleAuth() {
@@ -164,14 +165,28 @@
     function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
+      if (!email || !password) {
+        alert("Preencha e-mail e senha.");
+        return;
+      }
       auth.signInWithEmailAndPassword(email, password)
         .then(() => location.reload())
-        .catch(e => alert("Erro ao entrar: " + e.message));
+        .catch(e => {
+          if (e.code === "auth/invalid-credential") {
+            alert("Credenciais inválidas. Verifique e-mail e senha.");
+          } else {
+            alert("Erro ao entrar: " + e.message);
+          }
+        });
     }
 
     function register() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
+      if (!email || !password) {
+        alert("Preencha e-mail e senha.");
+        return;
+      }
       auth.createUserWithEmailAndPassword(email, password)
         .then(() => location.reload())
         .catch(e => alert("Erro ao cadastrar: " + e.message));
